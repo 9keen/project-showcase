@@ -35,9 +35,25 @@ A selection of ecommerce sites, company websites, and web applications from my p
 
 Autokan AI is a WordPress-based sales CRM from Bizwira Digital. It connects the sales pipeline with follow-ups, deliveries, and support so the team can track what needs to happen after a deal moves forward.
 
-- **WhatsApp coaching** sends scheduled check-ins about overdue follow-ups and quiet deals. Managers receive a team summary, and staff can acknowledge the morning check-in.
-- **AI sales assistant** can summarize quotations and draft cases or follow-ups for a person to review and save.
-- **My Day** brings overdue tasks, deals without a next step, and open deliveries or tickets into one view.
-- **Integration with a major ecommerce platform** brings paid orders into the CRM and creates pending deliveries. Web orders are tracked separately from sales pipeline reporting.
+#### WhatsApp coaching
+
+sends scheduled check-ins about overdue follow-ups and quiet deals. Managers receive a team summary, and staff can acknowledge the morning check-in.
+
+![Sample WhatsApp check-in and daily schedule](autokan-slides/whatsapp-coaching.jpg)
+#### AI sales assistant
+
+can summarize quotations and draft cases or follow-ups for a person to review and save.
+
+![Sample quotation summary and draft approval controls](autokan-slides/ai-sales-assistant.jpg)
+#### My Day
+
+brings overdue tasks, deals without a next step, and open deliveries or tickets into one view.
+
+![Sample My Day briefing and prioritized task list](autokan-slides/my-day.jpg)
+#### Integration with a major ecommerce platform
+
+brings paid orders into the CRM and creates pending deliveries. Web orders are tracked separately from sales pipeline reporting.
+
+![Paid online order workflow from checkout to team alert](autokan-slides/ecommerce-integration.jpg)
 
 [Explore the SalesBoard demo with fictional data](https://9keen.github.io/project-showcase/autokan-ai-demo/).
