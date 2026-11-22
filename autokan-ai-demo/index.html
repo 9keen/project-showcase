@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Autokan AI Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE: a shipped SaaS CRM — calm, exact, confident; the product is the picture.
+   IDEA: a kanban board on a workshop wall — cards moving left to right toward "Won".
+   PICTURE: the live board and dashboard themselves; brand glyph = three kanban columns.
+   COLOUR and TYPE: deep teal sidebar field, white work surface, one orange pointer for overdue/AI; Geist throughout.
+   LAYOUT: fixed sidebar + top bar, content up to 1240px; sidebar becomes an off-canvas drawer under 900px. */
+:root{color-scheme:light dark;
+--bg:light-dark(#f3f5f6,#0e1213);--panel:light-dark(#ffffff,#171c1e);--ink:light-dark(#14161a,#e7ebec);
+--mute:light-dark(#5b6470,#98a3a8);--line:light-dark(#e2e6e8,#283033);--soft:light-dark(#eef2f3,#1e2527);
+--brand:light-dark(#0b5d63,#3fb3aa);--side:light-dark(#0a3f43,#0a1c1e);--sideink:#d9ecea;
+--acc:light-dark(#e04600,#ff7a3d);--ok:light-dark(#1d7a4c,#5fcf93);--bad:light-dark(#c2331f,#ff7b6b);--warn:light-dark(#a95f06,#f0a54a)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 Geist,system-ui,-apple-system,Segoe UI,sans-serif;overflow-x:clip}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.app{display:grid;grid-template-columns:236px minmax(0,1fr);min-height:100vh}
+aside{background:var(--side);color:var(--sideink);padding:20px 14px;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;gap:18px;z-index:30}
+.logo{display:flex;gap:10px;align-items:center;padding:4px 8px}
+.logo b{font-size:19px;letter-spacing:-.01em;color:#fff;display:block;line-height:1.1}
+.logo small{font-size:12px;opacity:.7}
+nav{display:flex;flex-direction:column;gap:2px}
+nav a{display:flex;justify-content:space-between;align-items:center;gap:8px;color:var(--sideink);text-decoration:none;padding:10px 12px;border-radius:8px;min-height:42px;opacity:.82}
+nav a:hover{background:#ffffff14;opacity:1}
+nav a.on{background:#ffffff1f;opacity:1;color:#fff;font-weight:600}
+nav a i{font-style:normal;font-size:12px;background:var(--acc);color:#fff;border-radius:99px;padding:1px 8px}
+.sidefoot{margin-top:auto;font-size:12px;opacity:.72;padding:0 8px}
+.sidefoot a{color:#fff}
+main{display:flex;flex-direction:column;min-height:100vh}
+.ribbon{background:light-dark(#fff1e9,#2a1a10);color:light-dark(#8a3a0c,#ffb184);font-size:13px;padding:7px max(3vw,16px);border-bottom:1px solid var(--line)}
+header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px max(3vw,16px);border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:20}
+header h1{font-size:20px;margin:0;font-weight:600;flex:1;letter-spacing:-.01em}
+.burger{display:none;border:1px solid var(--line);background:none;border-radius:8px;width:44px;height:44px}
+.who{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--mute)}
+select,input,textarea{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:9px 10px;min-height:42px;font-size:16px}
+.who select{font-size:14px}
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:9px 14px;min-height:42px;font-weight:500}
+.btn.pri{background:var(--brand);border-color:var(--brand);color:light-dark(#fff,#062022)}
+.btn.ghost{background:none}
+.btn.danger{color:var(--bad)}
+.wrap{padding:22px max(3vw,16px) 48px;max-width:1300px;width:100%}
+.hello{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+.hello h2{font-size:clamp(26px,3.4vw,36px);line-height:1.08;margin:0;letter-spacing:-.02em;text-wrap:balance;font-weight:600}
+.hello p{margin:6px 0 0;color:var(--mute);max-width:70ch}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:14px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.kpi span{font-size:13px;color:var(--mute)}
+.kpi b{display:block;font-size:clamp(22px,2.6vw,30px);font-weight:600;letter-spacing:-.02em;white-space:nowrap;margin-top:2px}
+.kpi small{color:var(--mute);font-size:13px}
+.kpi.hot b{color:var(--acc)}
+.grid2{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:14px;margin-bottom:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;overflow-x:auto}
+.card h3{font-size:15px;margin:0 0 12px;font-weight:600;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.card h3 small{font-weight:400;color:var(--mute);font-size:13px}
+.bars{display:grid;gap:10px}
+.bar{display:grid;grid-template-columns:96px minmax(0,1fr) 92px;gap:10px;align-items:center;font-size:14px}
+.bar .t{height:22px;background:var(--soft);border-radius:6px;overflow:hidden}
+.bar .t div{height:100%;border-radius:6px;transition:width .5s}
+.bar .v{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.bar .n{color:var(--mute);font-size:12px}
+.list{display:grid;gap:2px}
+.li{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 4px;border-bottom:1px solid var(--line)}
+.li:last-child{border:0}
+.li .s{font-size:13px;color:var(--mute)}
+.due{font-size:12px;font-weight:600;white-space:nowrap;padding:2px 8px;border-radius:99px;background:var(--soft)}
+.due.late{background:light-dark(#ffe7dc,#3a1d10);color:var(--acc)}
+.due.today{background:light-dark(#e1f1ef,#12302d);color:var(--brand)}
+.wa{background:light-dark(#e7f3ef,#13261f);border-radius:12px;padding:14px;min-height:170px}
+.bubble{background:light-dark(#fff,#1d2d27);border-radius:4px 12px 12px 12px;padding:12px 14px;white-space:pre-wrap;font-size:14px;line-height:1.55;box-shadow:0 1px 0 var(--line);max-width:62ch}
+.bubble .tm{display:block;text-align:right;font-size:11px;color:var(--mute);margin-top:6px}
+.note{font-size:12px;color:var(--mute);margin-top:8px}
+.board{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(240px,1fr);gap:12px;overflow-x:auto;padding-bottom:10px}
+.col{background:var(--soft);border-radius:12px;padding:10px;min-height:420px;display:flex;flex-direction:column;gap:8px;transition:background .15s}
+.col.over{background:light-dark(#d8ecea,#173634)}
+.colh{display:flex;justify-content:space-between;align-items:baseline;padding:2px 4px 6px;font-weight:600}
+.colh small{font-weight:400;color:var(--mute);font-size:12px;white-space:nowrap}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px}
+.kc{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:grab;text-align:left;width:100%;display:block;box-shadow:0 1px 2px #0000000d}
+.kc:active{cursor:grabbing}
+.kc.drag{opacity:.4}
+.kc b{display:block;font-size:14px;font-weight:600}
+.kc .d{font-size:13px;color:var(--mute);margin:2px 0 8px}
+.kc .r{display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:13px}
+.av{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--brand);color:light-dark(#fff,#062022);font-size:11px;font-weight:600;flex:none}
+.chip{font-size:12px;padding:2px 8px;border-radius:99px;background:var(--soft);white-space:nowrap;font-weight:500}
+.chip.High,.chip.Problem,.chip.risk{background:light-dark(#ffe7dc,#3a1d10);color:var(--acc)}
+.chip.Won,.chip.Completed,.chip.Resolved{background:light-dark(#e0f2e8,#123222);color:var(--ok)}
+.chip.Lost{background:light-dark(#fbe4e0,#3a1714);color:var(--bad)}
+.chip.Scheduled,.chip.Pending{background:light-dark(#fdf1dc,#33260f);color:var(--warn)}
+.tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.tools input[type=search]{flex:1;min-width:180px;max-width:360px}
+.tabs{display:flex;gap:4px;flex-wrap:wrap}
+.tabs button{border:1px solid var(--line);background:var(--panel);border-radius:99px;padding:6px 14px;min-height:38px;font-size:14px}
+.tabs button.on{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+table{width:100%;border-collapse:collapse;min-width:640px;font-size:14px}
+th{text-align:left;font-weight:500;color:var(--mute);font-size:13px;border-bottom:1px solid var(--line);padding:0}
+th .sort{background:none;border:0;padding:10px 8px;width:100%;text-align:inherit;color:inherit;font-weight:500;white-space:nowrap}
+td{padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr.click{cursor:pointer}tr.click:hover td{background:var(--soft)}
+.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+th.num .sort{text-align:right}
+td select{min-height:36px;padding:5px 8px;font-size:14px}
+.chk{width:22px;height:22px;accent-color:var(--brand);min-height:0}
+.done td{color:var(--mute);text-decoration:line-through}
+.done td:first-child{text-decoration:none}
+.team{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.member{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;display:grid;gap:8px}
+.member .h{display:flex;gap:10px;align-items:center}
+.member .av{width:38px;height:38px;font-size:14px}
+.member dl{display:grid;grid-template-columns:1fr auto;gap:4px 10px;margin:0;font-size:14px}
+.member dt{color:var(--mute)}.member dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}
+.log .li{grid-template-columns:110px minmax(0,1fr)}
+.empty{padding:28px;text-align:center;color:var(--mute)}
+.scrim{position:fixed;inset:0;background:#0008;display:none;place-items:center;z-index:50;padding:16px}
+.scrim.on{display:grid}
+.modal{background:var(--panel);border-radius:14px;padding:20px;width:min(560px,100%);max-height:90vh;overflow:auto}
+.modal h3{margin:0 0 14px;font-size:18px}
+.form{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form label{display:grid;gap:4px;font-size:13px;color:var(--mute)}
+.form .full{grid-column:1/-1}
+.form textarea{min-height:80px;resize:vertical}
+.mfoot{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}
+.mfoot .sp{flex:1}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--panel);padding:10px 16px;border-radius:10px;font-size:14px;opacity:0;transition:.25s;z-index:60;pointer-events:none;max-width:90vw}
+.toast.on{opacity:1;transform:translateX(-50%)}
+.drawerbg{display:none}
+@media(max-width:1000px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.grid2{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:900px){.app{grid-template-columns:minmax(0,1fr)}
+aside{position:fixed;left:0;top:0;width:260px;transform:translateX(-100%);transition:transform .2s}
+.app.nav aside{transform:none}.app.nav .drawerbg{display:block;position:fixed;inset:0;background:#0006;z-index:25}
+.burger{display:grid;place-items:center}}
+@media(max-width:600px){.who span{display:none}.form{grid-template-columns:1fr}.bar{grid-template-columns:78px minmax(0,1fr) 78px}
+table{font-size:13px}.stack{min-width:0}.stack thead{display:none}.stack tr{display:grid;padding-block:10px;border-bottom:1px solid var(--line)}.stack td{display:flow-root;border:0;padding:3px 0;padding-inline-start:8em;text-align:start}.stack td::before{content:attr(data-l);float:inline-start;width:7.5em;margin-inline-start:-8em;color:var(--mute)}.stack td:empty{display:none}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+<script>new MutationObserver(()=>{for(const c of document.querySelectorAll('.stack td:not([data-l])')){let i=0,p=c;while(p=p.previousElementSibling)i+=p.colSpan;c.dataset.l=c.closest('table').rows[0].cells[i]?.textContent.replace(/[▲▼]/g,'').trim()||''}}).observe(document,{childList:true,subtree:true})</script>
+</head>
+<body>
+<div class="app" id="app">
+<aside>
+  <div class="logo">
+    <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><rect width="34" height="34" rx="9" fill="#ffffff1f"/><rect x="7" y="8" width="5" height="18" rx="2" fill="#fff"/><rect x="14.5" y="8" width="5" height="12" rx="2" fill="#fff" opacity=".75"/><rect x="22" y="8" width="5" height="7" rx="2" fill="#ff7a3d"/></svg>
+    <div><b>Autokan AI</b><small>by Bizwira Digital</small></div>
+  </div>
+  <nav id="nav"></nav>
+  <div class="sidefoot">Demo workspace for <b>Teras Niaga Sdn Bhd</b>, a fictional POS reseller.<br><a href="https://bizwira.com">bizwira.com</a></div>
+</aside>
+<div class="drawerbg" id="drawerbg"></div>
+<main>
+  <div class="ribbon">Demo: every company, person, phone number and ringgit amount here is invented. Your changes are saved only in this browser.</div>
+  <header>
+    <button class="burger" id="burger" aria-label="Open menu"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+    <h1 id="ptitle">Dashboard</h1>
+    <label class="who"><span>Viewing as</span><select id="me"></select></label>
+    <button class="btn ghost" id="reset">Reset demo</button>
+  </header>
+  <div class="wrap" id="view"></div>
+</main>
+</div>
+<div class="scrim" id="scrim"><div class="modal" id="modal" role="dialog" aria-modal="true"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+{
+const KEY='autokan-demo-v1', TZ='Asia/Kuala_Lumpur';
+const fmtKey=d=>new Intl.DateTimeFormat('en-CA',{timeZone:TZ,year:'numeric',month:'2-digit',day:'2-digit'}).format(d);
+const TODAY=fmtKey(new Date());
+const addDays=(k,n)=>{const d=new Date(k+'T00:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10)};
+const diff=(a,b)=>Math.round((new Date(a+'T00:00:00Z')-new Date(b+'T00:00:00Z'))/864e5);
+const fd=k=>k?new Date(k+'T00:00:00Z').toLocaleDateString('en-MY',{day:'numeric',month:'short',timeZone:'UTC'}):'—';
+const rm=n=>'RM '+Math.round(n).toLocaleString('en-MY');
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const $=id=>document.getElementById(id);
+const STAGES=['Lead','Qualified','Proposal','Negotiation','Won','Lost'];
+const SCOL={Lead:'#8a96a0',Qualified:'#5aa9a2',Proposal:'#0b7d85',Negotiation:'#e04600',Won:'#1d9a5c',Lost:'#c2331f'};
+const ROLE={manager:'Sales manager',lead:'Team lead',rep:'Sales rep',tech:'Technician',support:'Support'};
+
+function seed(){
+  const users=[
+    {id:'wp_1',name:'Aisyah Rahman',role:'manager',team:''},
+    {id:'wp_2',name:'Daniel Wong',role:'lead',team:'Klang Valley North'},
+    {id:'wp_3',name:'Priya Nair',role:'rep',team:'Klang Valley North'},
+    {id:'wp_4',name:'Hafiz Osman',role:'rep',team:'Klang Valley North'},
+    {id:'wp_5',name:'Mei Ling Tan',role:'lead',team:'Klang Valley South'},
+    {id:'wp_6',name:'Arjun Kumar',role:'rep',team:'Klang Valley South'},
+    {id:'wp_9',name:'Siti Zulaikha',role:'rep',team:'Klang Valley South'},
+    {id:'wp_7',name:'Farah Iskandar',role:'tech',team:''},
+    {id:'wp_10',name:'Ravi Chandran',role:'tech',team:''},
+    {id:'wp_8',name:'Kelvin Lim',role:'support',team:''}];
+  const cu=[['Kopi Senja Café','Nurul Huda','F&B','Shah Alam'],['Restoran Selera Kampung','Ahmad Fauzi','F&B','Klang'],['Butik Anggun','Lim Shu Fen','Retail','Petaling Jaya'],['Kedai Runcit Maju Jaya','Muthu Raman','Retail','Rawang'],['Bakeri Mentari','Chong Wai Kit','F&B','Puchong'],['Klinik Gigi Senyum','Dr. Hannah Lee','Healthcare','Cheras'],['Dobi Express Ampang','Zainal Abidin','Services','Ampang'],['Mamak Corner Bangsar','Rizwan Ali','F&B','Bangsar'],['Farmasi Sihat Plus','Tan Mei Yee','Healthcare','Subang Jaya'],['Salon Rambut Ayu','Ayu Kartika','Services','Kajang'],['Hardware Tukang Setia','Ong Kah Seng','Retail','Selayang'],['Pasar Mini Harmoni','Kavitha Devi','Retail','Seremban']];
+  const customers=cu.map((c,i)=>({id:'c'+(i+1),name:c[0],contact:c[1],industry:c[2],city:c[3],phone:'+60 12-555 '+String(140+i*7).padStart(4,'0'),email:'hello@'+c[0].toLowerCase().replace(/[^a-z]/g,'').slice(0,12)+'.example'}));
+  const C=[['c1','POS bundle for 2 outlets','wp_3','Negotiation',8400,'High','Open',-21],['c2','QR table ordering','wp_3','Proposal',5200,'Medium','Open',-12],['c3','Handheld POS for staff','wp_4','Qualified',3600,'Low','Open',-6],['c4','Inventory + POS upgrade','wp_4','Won',6900,'Medium','Closed',-30],['c5','Self-order kiosk','wp_6','Negotiation',12800,'High','At risk',-26],['c6','Receipt printer refresh','wp_6','Lead',1450,'Low','Open',-2],['c7','Multi-branch cloud plan','wp_9','Proposal',9600,'High','Open',-15],['c8','Self-order kiosk × 2','wp_2','Won',14200,'High','Closed',-40],['c9','Inventory + POS upgrade','wp_5','Qualified',11300,'Medium','Open',-9],['c10','Loyalty & e-wallet add-on','wp_9','Lead',2200,'Low','Open',-1],['c11','POS bundle for 2 outlets','wp_3','Lost',7800,'Medium','Closed',-35],['c12','Multi-branch cloud plan','wp_6','Proposal',18500,'High','At risk',-18],['c2','Receipt printer refresh','wp_4','Won',980,'Low','Closed',-8],['c5','Loyalty & e-wallet add-on','wp_6','Lead',2600,'Medium','Open',-3],['c1','Handheld POS for staff','wp_2','Qualified',4100,'Medium','Open',-10],['c9','Receipt printer refresh','wp_5','Negotiation',1900,'Low','Open',-14],['c3','Loyalty & e-wallet add-on','wp_3','Lead',1800,'Low','Open',-4],['c7','Receipt printer refresh','wp_9','Won',1250,'Low','Closed',-5]];
+  const cases=C.map((c,i)=>({id:'k'+(i+1),cust:c[0],title:c[1],rep:c[2],stage:c[3],value:c[4],priority:c[5],status:c[6],created:addDays(TODAY,c[7]),notes:''}));
+  const F=[[1,-3,'Call','Confirm final quote for second outlet',0],[1,1,'Visit','Demo at Seksyen 7 outlet',0],[2,0,'WhatsApp','Send revised proposal PDF',0],[3,2,'Call','Check budget timing with owner',0],[5,-5,'Call','Owner went quiet after pricing, chase',0],[5,0,'Email','Offer 12-month instalment option',0],[6,3,'Call','Intro call',0],[7,-1,'WhatsApp','Confirm number of branches',0],[9,1,'Visit','Walk-through of stockroom',0],[10,4,'WhatsApp','Share loyalty brochure',0],[12,-2,'Call','Board decision pending',0],[12,2,'Visit','Meet operations manager',0],[14,5,'Call','Qualify loyalty needs',0],[15,0,'Call','Confirm number of handhelds',0],[16,-1,'Email','Send printer spec sheet',0],[17,6,'WhatsApp','Intro message',0],[2,-6,'Call','First proposal walkthrough',1],[4,-25,'Visit','Signed, handover done',1],[8,-33,'Call','Payment confirmed',1]];
+  const followups=F.map((f,i)=>({id:'f'+(i+1),caseId:'k'+f[0],rep:cases[f[0]-1].rep,due:addDays(TODAY,f[1]),type:f[2],note:f[3],done:!!f[4]}));
+  const D=[['c4',4,'wp_4','wp_7',-2,'Completed','Install 1 POS + import 1,200 SKUs'],['c8',8,'wp_2','wp_10',-1,'Problem','Kiosk 2 card reader not pairing'],['c2',13,'wp_4','wp_7',1,'Scheduled','Swap 2 receipt printers'],['c7',18,'wp_9','wp_10',0,'In progress','Printer setup at Ampang branch'],['c8',8,'wp_2','wp_7',3,'Scheduled','Staff training on kiosk menu'],['c4',4,'wp_4','wp_10',6,'Scheduled','30-day check-in visit']];
+  const deliveries=D.map((d,i)=>({id:'d'+(i+1),cust:d[0],caseId:'k'+d[1],rep:d[2],tech:d[3],date:addDays(TODAY,d[4]),status:d[5],req:d[6]}));
+  const T=[['c8','wp_2','Hardware','High','Kiosk 2 card reader not pairing after update','Open',-1],['c4','wp_4','Training','Low','Cashier asks how to void a receipt','Resolved',-4],['c2','wp_4','Billing','Medium','Invoice shows wrong SST amount','Pending',-3],['c7','wp_9','Software','Medium','Daily sales report email not arriving','Open',-2],['c1','wp_3','Hardware','Low','Cash drawer sticks when closing','Open',0]];
+  const tickets=T.map((t,i)=>({id:'t'+(i+1),cust:t[0],rep:t[1],staff:'wp_8',cat:t[2],priority:t[3],detail:t[4],status:t[5],opened:addDays(TODAY,t[6])}));
+  const log=[{at:addDays(TODAY,-1)+' 17:42',by:'wp_6',text:'Moved <b>Pasar Mini Harmoni</b> · Multi-branch cloud plan to Proposal'},{at:addDays(TODAY,-1)+' 11:05',by:'wp_8',text:'Opened ticket for <b>Mamak Corner Bangsar</b>: kiosk 2 card reader'},{at:addDays(TODAY,-2)+' 15:20',by:'wp_7',text:'Completed delivery at <b>Kedai Runcit Maju Jaya</b>'}];
+  return {v:1,users,customers,cases,followups,deliveries,tickets,log,me:'wp_1',seq:100};
+}
+let S;
+try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){S=null}
+if(!S||S.v!==1)S=seed();
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const uid=p=>p+(++S.seq);
+const user=id=>S.users.find(u=>u.id===id)||{name:'—',role:''};
+const cust=id=>S.customers.find(c=>c.id===id)||{name:'—'};
+const kase=id=>S.cases.find(c=>c.id===id);
+const first=n=>n.split(' ')[0];
+const ini=n=>n.split(' ').map(w=>w[0]).slice(0,2).join('');
+const av=id=>{const u=user(id);return `<span class="av" title="${esc(u.name)}">${esc(ini(u.name))}</span>`};
+const nowStamp=()=>{const d=new Date();return TODAY+' '+d.toLocaleTimeString('en-GB',{timeZone:TZ,hour:'2-digit',minute:'2-digit'})};
+const audit=t=>{S.log.unshift({at:nowStamp(),by:S.me,text:t});S.log=S.log.slice(0,200)};
+
+function scope(){const me=user(S.me);
+  if(me.role==='manager')return null;
+  if(me.role==='lead')return S.users.filter(u=>u.team===me.team).map(u=>u.id);
+  return [me.id];}
+const vis=(arr,f='rep')=>{const s=scope();return s?arr.filter(r=>s.includes(r[f])):arr};
+const reps=()=>{const s=scope();return S.users.filter(u=>['manager','lead','rep'].includes(u.role)&&(!s||s.includes(u.id)))};
+
+const VIEWS=[['dashboard','Dashboard'],['pipeline','Pipeline'],['cases','Cases'],['followups','Follow-ups'],['customers','Customers'],['delivery','Delivery'],['support','Support'],['team','Team'],['activity','Activity log']];
+let view='dashboard',fuTab='open',q={};
+const sortSt={cases:{k:'created',d:-1},followups:{k:'due',d:1},customers:{k:'name',d:1},delivery:{k:'date',d:1},support:{k:'opened',d:-1}};
+function sorted(v,rows,g){const s=sortSt[v];const f=g[s.k];return rows.slice().sort((a,b)=>{const x=f(a),y=f(b);return (x>y?1:x<y?-1:0)*s.d})}
+const th=(v,k,l,c='')=>{const s=sortSt[v];return `<th class="${c}"><button class="sort" data-sort="${v}:${k}">${l}${s.k===k?(s.d>0?' ▲':' ▼'):''}</button></th>`};
+const dueChip=k=>{const n=diff(k,TODAY);const c=n<0?'late':n===0?'today':'';const t=n<0?`${-n}d overdue`:n===0?'Today':n===1?'Tomorrow':fd(k);return `<span class="due ${c}">${t}</span>`};
+
+function renderNav(){
+  const late=vis(S.followups).filter(f=>!f.done&&f.due<TODAY).length;
+  $('nav').innerHTML=VIEWS.map(([k,l])=>`<a href="#${k}" class="${view===k?'on':''}">${l}${k==='followups'&&late?`<i>${late}</i>`:''}</a>`).join('');
+  $('me').innerHTML=S.users.filter(u=>['manager','lead','rep'].includes(u.role)).map(u=>`<option value="${u.id}" ${u.id===S.me?'selected':''}>${esc(u.name)} · ${ROLE[u.role]}</option>`).join('');
+}
+
+function dashboard(){
+  const me=user(S.me),cs=vis(S.cases),fu=vis(S.followups).filter(f=>!f.done),dv=vis(S.deliveries),tk=vis(S.tickets);
+  const open=cs.filter(c=>!['Won','Lost'].includes(c.stage));
+  const pipe=open.reduce((a,c)=>a+c.value,0);
+  const won=cs.filter(c=>c.stage==='Won'&&diff(TODAY,c.created)<=30);
+  const late=fu.filter(f=>f.due<TODAY).sort((a,b)=>a.due<b.due?-1:1);
+  const today=fu.filter(f=>f.due===TODAY);
+  const openT=tk.filter(t=>t.status!=='Resolved');
+  const risk=open.filter(c=>c.status==='At risk');
+  const max=Math.max(1,...STAGES.map(s=>cs.filter(c=>c.stage===s).reduce((a,c)=>a+c.value,0)));
+  const h=+new Date().toLocaleString('en-GB',{timeZone:TZ,hour:'2-digit',hour12:false});
+  const greet=h<12?'Good morning':h<18?'Good afternoon':'Good evening';
+  const rk=risk.length?`${risk.length} deal${risk.length===1?' is':'s are'} at risk`:'';
+  const finding=late.length?`${late.length} follow-up${late.length>1?'s are':' is'} overdue${rk?', and '+rk:''}.`:rk?`No overdue follow-ups, but ${rk}.`:'No overdue follow-ups. The pipeline is clear for today.';
+  const nextDv=dv.filter(d=>d.date>=TODAY&&diff(d.date,TODAY)<=7&&d.status!=='Completed').sort((a,b)=>a.date<b.date?-1:1);
+  return `<div class="hello"><div><h2>${greet}, ${esc(first(me.name))}. ${finding}</h2>
+  <p>${new Date().toLocaleDateString('en-MY',{weekday:'long',day:'numeric',month:'long',year:'numeric',timeZone:TZ})} · Showing ${scope()?`${ROLE[me.role].toLowerCase()} view (${me.role==='lead'?esc(me.team):'own records only'})`:'all teams'}</p></div>
+  <button class="btn pri" data-act="newcase">+ New case</button></div>
+  <div class="kpis">
+   <div class="kpi"><span>Open pipeline</span><b>${rm(pipe)}</b><small>${open.length} open cases</small></div>
+   <div class="kpi"><span>Won, last 30 days</span><b>${rm(won.reduce((a,c)=>a+c.value,0))}</b><small>${won.length} deals closed</small></div>
+   <div class="kpi ${late.length?'hot':''}"><span>Overdue follow-ups</span><b>${late.length}</b><small>${today.length} due today</small></div>
+   <div class="kpi"><span>Open tickets</span><b>${openT.length}</b><small>${openT.filter(t=>t.priority==='High').length} high priority</small></div>
+  </div>
+  <div class="grid2">
+   <div class="card"><h3>Pipeline by stage <small>value of cases in each stage</small></h3><div class="bars">
+   ${STAGES.map(s=>{const r=cs.filter(c=>c.stage===s),v=r.reduce((a,c)=>a+c.value,0);return `<div class="bar"><div>${s}<div class="n">${r.length} case${r.length===1?'':'s'}</div></div><div class="t"><div style="width:${v/max*100}%;background:${SCOL[s]}"></div></div><div class="v">${rm(v)}</div></div>`}).join('')}
+   </div></div>
+   <div class="card"><h3>AI morning briefing <button class="btn" data-act="brief">${S.brief?'Regenerate':'Generate'}</button></h3>
+    <div class="wa"><div class="bubble" id="bubble">${S.brief?esc(S.brief.text)+`<span class="tm">${esc(S.brief.at)} · WhatsApp</span>`:'Tap Generate to draft today\'s WhatsApp briefing for '+esc(first(me.name))+'.'}</div></div>
+    <div class="note">Simulated: in this demo the briefing is written from the data on screen, in your browser. In production it is drafted by the AI module and sent by WhatsApp at 9:00 MYT.</div></div>
+  </div>
+  <div class="grid2">
+   <div class="card"><h3>Needs attention <a class="btn ghost" href="#followups">All follow-ups</a></h3>
+    ${late.concat(today).length?`<div class="list">${late.concat(today).slice(0,7).map(f=>{const c=kase(f.caseId);return `<div class="li">${dueChip(f.due)}<div><b>${esc(cust(c?.cust).name)}</b> <span class="s">· ${esc(f.type)}</span><div class="s">${esc(f.note)}</div></div><input type="checkbox" class="chk" data-done="${f.id}" aria-label="Mark done"></div>`}).join('')}</div>`:'<div class="empty">Nothing overdue or due today.</div>'}</div>
+   <div class="card"><h3>Deliveries, next 7 days <a class="btn ghost" href="#delivery">All deliveries</a></h3>
+    ${nextDv.length?`<div class="list">${nextDv.map(d=>`<div class="li">${dueChip(d.date)}<div><b>${esc(cust(d.cust).name)}</b><div class="s">${esc(d.req)} · ${esc(user(d.tech).name)}</div></div><span class="chip ${d.status.replace(' ','')}">${d.status}</span></div>`).join('')}</div>`:'<div class="empty">No deliveries scheduled this week.</div>'}</div>
+  </div>`;
+}
+
+function pipeline(){
+  const cs=vis(S.cases);
+  return `<div class="tools"><input type="search" id="q" placeholder="Filter cards by customer or deal" value="${esc(q.pipeline||'')}"><span class="note" style="margin:0">Drag a card to another column to change its stage.</span><span style="flex:1"></span><button class="btn pri" data-act="newcase">+ New case</button></div>
+  <div class="board">${STAGES.map(s=>{const r=cs.filter(c=>c.stage===s&&match(c,q.pipeline));return `<div class="col" data-stage="${s}"><div class="colh"><span><span class="dot" style="background:${SCOL[s]}"></span>${s} · ${r.length}</span><small>${rm(r.reduce((a,c)=>a+c.value,0))}</small></div>
+   ${r.sort((a,b)=>b.value-a.value).map(c=>`<button class="kc" draggable="true" data-case="${c.id}"><b>${esc(cust(c.cust).name)}</b><div class="d">${esc(c.title)}</div><div class="r"><span>${rm(c.value)}</span><span style="display:flex;gap:6px;align-items:center">${c.status==='At risk'?'<span class="chip risk">At risk</span>':c.priority==='High'?'<span class="chip High">High</span>':''}${av(c.rep)}</span></div></button>`).join('')}</div>`}).join('')}</div>`;
+}
+const match=(c,t)=>!t||(cust(c.cust).name+' '+c.title+' '+user(c.rep).name).toLowerCase().includes(t.toLowerCase());
+
+function cases(){
+  const rows=sorted('cases',vis(S.cases).filter(c=>match(c,q.cases)),{cust:c=>cust(c.cust).name,title:c=>c.title,stage:c=>STAGES.indexOf(c.stage),value:c=>c.value,priority:c=>['Low','Medium','High'].indexOf(c.priority),status:c=>c.status,rep:c=>user(c.rep).name,created:c=>c.created});
+  return `<div class="tools"><input type="search" id="q" placeholder="Search customer, deal or rep" value="${esc(q.cases||'')}"><span style="flex:1"></span><button class="btn pri" data-act="newcase">+ New case</button></div>
+  <div class="card"><table class="stack"><thead><tr>${th('cases','cust','Customer')}${th('cases','title','Deal')}${th('cases','stage','Stage')}${th('cases','value','Value','num')}${th('cases','priority','Priority')}${th('cases','status','Status')}${th('cases','rep','Rep')}${th('cases','created','Created')}</tr></thead>
+  <tbody>${rows.map(c=>`<tr class="click" data-case="${c.id}"><td><b>${esc(cust(c.cust).name)}</b></td><td>${esc(c.title)}</td><td><span class="dot" style="background:${SCOL[c.stage]}"></span>${c.stage}</td><td class="num">${rm(c.value)}</td><td><span class="chip ${c.priority}">${c.priority}</span></td><td>${c.status==='At risk'?'<span class="chip risk">At risk</span>':esc(c.status)}</td><td>${esc(user(c.rep).name)}</td><td>${fd(c.created)}</td></tr>`).join('')||'<tr><td colspan="8" class="empty">No cases match.</td></tr>'}</tbody></table></div>`;
+}
+
+function followups(){
+  const all=vis(S.followups);
+  const tabs={open:['Open',f=>!f.done],late:['Overdue',f=>!f.done&&f.due<TODAY],today:['Today',f=>!f.done&&f.due===TODAY],up:['Upcoming',f=>!f.done&&f.due>TODAY],done:['Done',f=>f.done]};
+  const rows=sorted('followups',all.filter(tabs[fuTab][1]),{due:f=>f.due,cust:f=>cust(kase(f.caseId)?.cust).name,type:f=>f.type,rep:f=>user(f.rep).name});
+  return `<div class="tools"><div class="tabs">${Object.entries(tabs).map(([k,[l,fn]])=>`<button class="${fuTab===k?'on':''}" data-tab="${k}">${l} · ${all.filter(fn).length}</button>`).join('')}</div><span style="flex:1"></span><button class="btn pri" data-act="newfu">+ Follow-up</button></div>
+  <div class="card"><table class="stack"><thead><tr><th style="width:44px"><span class="sort" style="display:block">Done</span></th>${th('followups','due','Due')}${th('followups','cust','Customer & deal')}${th('followups','type','Type')}<th><span class="sort" style="display:block">Note</span></th>${th('followups','rep','Rep')}</tr></thead>
+  <tbody>${rows.map(f=>{const c=kase(f.caseId);return `<tr class="${f.done?'done':''}"><td><input type="checkbox" class="chk" data-done="${f.id}" ${f.done?'checked':''} aria-label="Done"></td><td>${f.done?fd(f.due):dueChip(f.due)}</td><td><b>${esc(cust(c?.cust).name)}</b><div class="note" style="margin:0">${esc(c?.title)}</div></td><td>${esc(f.type)}</td><td>${esc(f.note)}</td><td>${esc(user(f.rep).name)}</td></tr>`}).join('')||'<tr><td colspan="6" class="empty">Nothing here. Nice.</td></tr>'}</tbody></table></div>`;
+}
+
+function customers(){
+  const t=(q.customers||'').toLowerCase();
+  const st=c=>{const k=S.cases.filter(x=>x.cust===c.id);return {open:k.filter(x=>!['Won','Lost'].includes(x.stage)).length,won:k.filter(x=>x.stage==='Won').reduce((a,x)=>a+x.value,0)}};
+  const rows=sorted('customers',S.customers.filter(c=>!t||(c.name+c.contact+c.city+c.industry).toLowerCase().includes(t)),{name:c=>c.name,contact:c=>c.contact,industry:c=>c.industry,city:c=>c.city,open:c=>st(c).open,won:c=>st(c).won});
+  return `<div class="tools"><input type="search" id="q" placeholder="Search customers" value="${esc(q.customers||'')}"><span class="note" style="margin:0">Shared directory, visible to every role.</span></div>
+  <div class="card"><table class="stack"><thead><tr>${th('customers','name','Company')}${th('customers','contact','Contact')}<th><span class="sort" style="display:block">Phone</span></th>${th('customers','industry','Industry')}${th('customers','city','City')}${th('customers','open','Open cases','num')}${th('customers','won','Won to date','num')}</tr></thead>
+  <tbody>${rows.map(c=>{const s=st(c);return `<tr><td><b>${esc(c.name)}</b><div class="note" style="margin:0">${esc(c.email)}</div></td><td>${esc(c.contact)}</td><td style="white-space:nowrap">${esc(c.phone)}</td><td>${esc(c.industry)}</td><td>${esc(c.city)}</td><td class="num">${s.open}</td><td class="num">${rm(s.won)}</td></tr>`}).join('')}</tbody></table></div>`;
+}
+
+const sel=(attr,id,opts,v)=>`<select ${attr}="${id}" aria-label="Status">${opts.map(o=>`<option ${o===v?'selected':''}>${o}</option>`).join('')}</select>`;
+function delivery(){
+  const rows=sorted('delivery',vis(S.deliveries),{date:d=>d.date,cust:d=>cust(d.cust).name,tech:d=>user(d.tech).name,status:d=>d.status});
+  return `<div class="card"><table class="stack"><thead><tr>${th('delivery','date','Setup date')}${th('delivery','cust','Customer')}<th><span class="sort" style="display:block">Requirements</span></th>${th('delivery','tech','Technician')}<th><span class="sort" style="display:block">Sales rep</span></th>${th('delivery','status','Status')}</tr></thead>
+  <tbody>${rows.map(d=>`<tr><td>${d.status==='Completed'?fd(d.date):dueChip(d.date)}</td><td><b>${esc(cust(d.cust).name)}</b></td><td>${esc(d.req)}</td><td>${esc(user(d.tech).name)}</td><td>${esc(user(d.rep).name)}</td><td>${sel('data-dv',d.id,['Scheduled','In progress','Problem','Completed'],d.status)}</td></tr>`).join('')||'<tr><td colspan="6" class="empty">No deliveries in your view.</td></tr>'}</tbody></table></div>`;
+}
+function support(){
+  const rows=sorted('support',vis(S.tickets),{opened:t=>t.opened,cust:t=>cust(t.cust).name,cat:t=>t.cat,priority:t=>['Low','Medium','High'].indexOf(t.priority),status:t=>t.status});
+  return `<div class="card"><table class="stack"><thead><tr>${th('support','opened','Opened')}${th('support','cust','Customer')}${th('support','cat','Category')}${th('support','priority','Priority')}<th><span class="sort" style="display:block">Detail</span></th><th><span class="sort" style="display:block">Assigned</span></th>${th('support','status','Status')}</tr></thead>
+  <tbody>${rows.map(t=>`<tr><td>${fd(t.opened)}</td><td><b>${esc(cust(t.cust).name)}</b></td><td>${esc(t.cat)}</td><td><span class="chip ${t.priority}">${t.priority}</span></td><td>${esc(t.detail)}</td><td>${esc(user(t.staff).name)}</td><td>${sel('data-tk',t.id,['Open','Pending','Resolved'],t.status)}</td></tr>`).join('')||'<tr><td colspan="7" class="empty">No tickets in your view.</td></tr>'}</tbody></table></div>`;
+}
+function team(){
+  const s=scope();const us=S.users.filter(u=>!s||s.includes(u.id)||!['manager','lead','rep'].includes(u.role));
+  return `<div class="team">${us.map(u=>{const k=S.cases.filter(c=>c.rep===u.id&&!['Won','Lost'].includes(c.stage));const late=S.followups.filter(f=>f.rep===u.id&&!f.done&&f.due<TODAY).length;const dv=S.deliveries.filter(d=>d.tech===u.id&&d.status!=='Completed').length;
+   return `<div class="member"><div class="h">${av(u.id)}<div><b>${esc(u.name)}</b><div class="note" style="margin:0">${ROLE[u.role]}${u.team?' · '+esc(u.team):''}</div></div></div><dl>${['manager','lead','rep'].includes(u.role)?`<dt>Open cases</dt><dd>${k.length}</dd><dt>Pipeline</dt><dd>${rm(k.reduce((a,c)=>a+c.value,0))}</dd><dt>Overdue follow-ups</dt><dd style="${late?'color:var(--acc);font-weight:600':''}">${late}</dd>`:u.role==='tech'?`<dt>Open deliveries</dt><dd>${dv}</dd>`:`<dt>Open tickets</dt><dd>${S.tickets.filter(t=>t.staff===u.id&&t.status!=='Resolved').length}</dd>`}<dt>User ID</dt><dd><code>${u.id}</code></dd></dl></div>`}).join('')}</div>`;
+}
+function activity(){
+  return `<div class="card log"><h3>Audit trail <small>every create, update and delete is recorded</small></h3><div class="list">${S.log.map(l=>`<div class="li"><span class="s">${esc(fd(l.at.slice(0,10)))} ${esc(l.at.slice(11))}</span><div>${l.text} <span class="s">· ${esc(user(l.by).name)}</span></div></div>`).join('')}</div></div>`;
+}
+
+const R={dashboard,pipeline,cases,followups,customers,delivery,support,team,activity};
+function render(){
+  renderNav();
+  $('ptitle').textContent=VIEWS.find(v=>v[0]===view)[1];
+  $('view').innerHTML=R[view]();
+  const qi=$('q');
+  if(qi)qi.oninput=()=>{q[view]=qi.value;const p=qi.selectionStart;render();const n=$('q');n.focus();n.setSelectionRange(p,p)};
+  $('app').classList.remove('nav');
+}
+function route(){const h=location.hash.slice(1);view=R[h]?h:'dashboard';render();window.scrollTo(0,0)}
+
+function toast(t){const e=$('toast');e.innerHTML=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),2400)}
+function modal(html){$('modal').innerHTML=html;$('scrim').classList.add('on');const f=$('modal').querySelector('input,select');if(f)f.focus()}
+const close=()=>$('scrim').classList.remove('on');
+
+function caseForm(id){
+  const c=id?kase(id):{cust:S.customers[0].id,title:'',value:'',stage:'Lead',priority:'Medium',status:'Open',rep:S.me,notes:''};
+  const rp=reps();if(!rp.find(u=>u.id===c.rep))rp.push(user(c.rep));
+  const o=(a,v)=>a.map(x=>`<option ${x===v?'selected':''}>${x}</option>`).join('');
+  modal(`<h3>${id?'Edit case':'New case'}</h3><form id="cf" class="form">
+  <label class="full">Customer<select name="cust">${S.customers.map(x=>`<option value="${x.id}" ${x.id===c.cust?'selected':''}>${esc(x.name)}</option>`).join('')}</select></label>
+  <label class="full">Deal<input name="title" required value="${esc(c.title)}" placeholder="e.g. POS bundle for 2 outlets"></label>
+  <label>Value (RM)<input name="value" type="number" min="0" step="50" required value="${c.value}"></label>
+  <label>Stage<select name="stage">${o(STAGES,c.stage)}</select></label>
+  <label>Priority<select name="priority">${o(['Low','Medium','High'],c.priority)}</select></label>
+  <label>Status<select name="status">${o(['Open','At risk','Closed'],c.status)}</select></label>
+  <label class="full">Assigned rep<select name="rep">${rp.map(u=>`<option value="${u.id}" ${u.id===c.rep?'selected':''}>${esc(u.name)}</option>`).join('')}</select></label>
+  <label class="full">Notes<textarea name="notes">${esc(c.notes)}</textarea></label></form>
+  <div class="mfoot">${id?`<button class="btn danger" data-act="delcase" data-id="${id}">Delete</button>`:''}<span class="sp"></span><button class="btn" data-act="close">Cancel</button><button class="btn pri" data-act="savecase" data-id="${id||''}">Save</button></div>`);
+}
+function fuForm(){
+  const cs=vis(S.cases).filter(c=>!['Won','Lost'].includes(c.stage));
+  if(!cs.length){toast('No open cases in your view.');return}
+  modal(`<h3>New follow-up</h3><form id="ff" class="form">
+  <label class="full">Case<select name="caseId">${cs.map(c=>`<option value="${c.id}">${esc(cust(c.cust).name)} · ${esc(c.title)}</option>`).join('')}</select></label>
+  <label>Due date<input type="date" name="due" value="${addDays(TODAY,1)}" required></label>
+  <label>Type<select name="type"><option>Call</option><option>WhatsApp</option><option>Visit</option><option>Email</option></select></label>
+  <label class="full">Note<input name="note" required placeholder="What needs to happen?"></label></form>
+  <div class="mfoot"><span class="sp"></span><button class="btn" data-act="close">Cancel</button><button class="btn pri" data-act="savefu">Save</button></div>`);
+}
+
+function briefing(){
+  const me=user(S.me),cs=vis(S.cases).filter(c=>!['Won','Lost'].includes(c.stage)),fu=vis(S.followups).filter(f=>!f.done);
+  const late=fu.filter(f=>f.due<TODAY).sort((a,b)=>a.due<b.due?-1:1),today=fu.filter(f=>f.due===TODAY);
+  const dv=vis(S.deliveries).filter(d=>d.status!=='Completed'&&diff(d.date,TODAY)>=0&&diff(d.date,TODAY)<=7);
+  const prob=vis(S.deliveries).filter(d=>d.status==='Problem');
+  const top=cs.slice().sort((a,b)=>['High','Medium','Low'].indexOf(a.priority)-['High','Medium','Low'].indexOf(b.priority)||STAGES.indexOf(b.stage)-STAGES.indexOf(a.stage)||b.value-a.value).slice(0,3);
+  const L=[`Selamat pagi, ${first(me.name)} 👋`,``,`*Pipeline:* ${cs.length} open cases worth ${rm(cs.reduce((a,c)=>a+c.value,0))}.`];
+  if(late.length){L.push(`*Overdue (${late.length}):*`);late.slice(0,3).forEach(f=>{const c=kase(f.caseId);L.push(`• ${cust(c.cust).name}: ${f.note} (${diff(TODAY,f.due)}d late, ${first(user(f.rep).name)})`)})}
+  if(today.length){L.push(`*Due today (${today.length}):*`);today.slice(0,3).forEach(f=>L.push(`• ${cust(kase(f.caseId).cust).name}: ${f.type.toLowerCase()}, ${f.note}`))}
+  if(dv.length)L.push(`*Deliveries this week:* ${dv.length}${prob.length?`, and ${prob.length} flagged with a problem (${cust(prob[0].cust).name})`:''}.`);
+  if(top.length){L.push(`*Top priorities:*`);top.forEach(c=>L.push(`• ${cust(c.cust).name}, ${c.title}: ${c.stage}, ${rm(c.value)}`))}
+  const a=late[0]?`call ${cust(kase(late[0].caseId).cust).name} first, it's the oldest overdue item.`:top[0]?`move ${cust(top[0].cust).name} forward from ${top[0].stage}.`:'enjoy a quiet day.';
+  L.push(``,`*Recommended first action:* ${a}`);
+  return L.join('\n');
+}
+function typeBrief(){
+  const text=briefing(),at=new Date().toLocaleTimeString('en-GB',{timeZone:TZ,hour:'2-digit',minute:'2-digit'});
+  S.brief={text,at};save();
+  const b=$('bubble');if(!b)return;
+  const btn=document.querySelector('[data-act=brief]');if(btn)btn.textContent='Regenerate';
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches){b.innerHTML=esc(text)+`<span class="tm">${at} · WhatsApp</span>`;return}
+  let i=0;clearInterval(typeBrief.t);
+  typeBrief.t=setInterval(()=>{i+=4;const el=$('bubble');if(!el){clearInterval(typeBrief.t);return}
+    el.innerHTML=esc(text.slice(0,i))+(i>=text.length?`<span class="tm">${at} · WhatsApp</span>`:'▍');if(i>=text.length)clearInterval(typeBrief.t)},16);
+}
+
+document.addEventListener('click',e=>{
+  const t=e.target.closest('[data-act],[data-case],[data-sort],[data-tab]');if(!t)return;
+  if(t.dataset.sort){const [v,k]=t.dataset.sort.split(':');const s=sortSt[v];s.d=s.k===k?-s.d:1;s.k=k;render();return}
+  if(t.dataset.tab){fuTab=t.dataset.tab;render();return}
+  if(t.dataset.case&&!t.dataset.act){caseForm(t.dataset.case);return}
+  const a=t.dataset.act;
+  if(a==='close')close();
+  if(a==='newcase')caseForm();
+  if(a==='newfu')fuForm();
+  if(a==='brief')typeBrief();
+  if(a==='savecase'){const f=$('cf');if(!f.reportValidity())return;const d=Object.fromEntries(new FormData(f));d.value=+d.value;
+    const id=t.dataset.id;
+    if(id){const c=kase(id);const ch=Object.keys(d).filter(k=>String(c[k])!==String(d[k]));Object.assign(c,d);audit(`Updated <b>${esc(cust(c.cust).name)}</b> · ${esc(c.title)}${ch.length?` (${ch.join(', ')})`:''}`);toast('Case saved')}
+    else{const c={id:uid('k'),created:TODAY,...d};S.cases.push(c);audit(`Created case <b>${esc(cust(c.cust).name)}</b> · ${esc(c.title)}, ${rm(c.value)}`);toast('Case created')}
+    save();close();render()}
+  if(a==='delcase'){const c=kase(t.dataset.id);S.cases=S.cases.filter(x=>x.id!==c.id);S.followups=S.followups.filter(f=>f.caseId!==c.id);audit(`Deleted case <b>${esc(cust(c.cust).name)}</b> · ${esc(c.title)}`);save();close();render();toast('Case deleted')}
+  if(a==='savefu'){const f=$('ff');if(!f.reportValidity())return;const d=Object.fromEntries(new FormData(f));const c=kase(d.caseId);
+    S.followups.push({id:uid('f'),rep:c.rep,done:false,...d});audit(`Added ${esc(d.type.toLowerCase())} follow-up for <b>${esc(cust(c.cust).name)}</b>, due ${fd(d.due)}`);save();close();render();toast('Follow-up added')}
+});
+document.addEventListener('change',e=>{
+  const t=e.target;
+  if(t.id==='me'){S.me=t.value;S.brief=null;save();render();toast(`Now viewing as ${esc(user(S.me).name)}`);return}
+  if(t.dataset.done){const f=S.followups.find(x=>x.id===t.dataset.done);f.done=t.checked;audit(`${f.done?'Completed':'Reopened'} follow-up for <b>${esc(cust(kase(f.caseId)?.cust).name)}</b>: ${esc(f.note)}`);save();setTimeout(render,f.done?250:0);if(f.done)toast('Follow-up done')}
+  if(t.dataset.dv){const d=S.deliveries.find(x=>x.id===t.dataset.dv);d.status=t.value;audit(`Delivery at <b>${esc(cust(d.cust).name)}</b> set to ${esc(d.status)}`);save();render();toast('Delivery updated')}
+  if(t.dataset.tk){const k=S.tickets.find(x=>x.id===t.dataset.tk);k.status=t.value;audit(`Ticket for <b>${esc(cust(k.cust).name)}</b> set to ${esc(k.status)}`);save();render();toast('Ticket updated')}
+});
+let dragId=null;
+document.addEventListener('dragstart',e=>{const c=e.target.closest('.kc');if(!c)return;dragId=c.dataset.case;c.classList.add('drag');try{e.dataTransfer.setData('text/plain',dragId);e.dataTransfer.effectAllowed='move'}catch(x){}});
+document.addEventListener('dragend',e=>{const c=e.target.closest&&e.target.closest('.kc');if(c)c.classList.remove('drag');document.querySelectorAll('.col.over').forEach(x=>x.classList.remove('over'))});
+document.addEventListener('dragover',e=>{const col=e.target.closest('.col');if(!col||!dragId)return;e.preventDefault();document.querySelectorAll('.col.over').forEach(x=>x!==col&&x.classList.remove('over'));col.classList.add('over')});
+document.addEventListener('drop',e=>{const col=e.target.closest('.col');if(!col||!dragId)return;e.preventDefault();const c=kase(dragId);const st=col.dataset.stage;dragId=null;
+  if(c&&c.stage!==st){const from=c.stage;c.stage=st;if(st==='Won'||st==='Lost')c.status='Closed';else if(c.status==='Closed')c.status='Open';
+    audit(`Moved <b>${esc(cust(c.cust).name)}</b> · ${esc(c.title)} from ${from} to ${st}`);save();render();toast(st==='Won'?`🎉 Won ${rm(c.value)} with ${esc(cust(c.cust).name)}`:`Moved to ${st}`)}else render()});
+$('scrim').addEventListener('click',e=>{if(e.target.id==='scrim')close()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')close()});
+$('burger').onclick=()=>$('app').classList.add('nav');
+$('drawerbg').onclick=()=>$('app').classList.remove('nav');
+$('reset').onclick=()=>{S=seed();save();fuTab='open';q={};route();toast('Demo data reset')};
+window.addEventListener('hashchange',route);
+route();
+}
+</script>
+</body>
+</html>
